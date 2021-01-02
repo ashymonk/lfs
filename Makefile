@@ -1,11 +1,12 @@
+SHELL := /bin/bash
 LFS := /mnt/lfs
 LFS_DISK := disk.img
 LFS_DISK_LOOPDEV = $(shell losetup --associated $(LFS_DISK) | cut -f1 -d:)
 LFS_DISK_MAPDEV = /dev/mapper/$(patsubst /dev/%,%,$(LFS_DISK_LOOPDEV))
 
 $(LFS_DISK):
-	dd if=/dev/zero of=$(LFS_DISK) count=62914560
-	parted --script $(LFS_DISK) \
+	dd if=/dev/zero of=$@ count=62914560
+	parted --script $@ \
 		unit s \
 		mklabel gpt \
 		mkpart fat32 2048s 1050623s \
@@ -15,6 +16,13 @@ $(LFS_DISK):
 		set 1 boot on \
 		set 4 swap on \
 		print
+
+wget-list:
+	wget http://www.linuxfromscratch.org/lfs/downloads/10.0-systemd/$@
+
+md5sums:
+	wget http://www.linuxfromscratch.org/lfs/downloads/10.0-systemd/$@
+	cp $@ $(LFS)/sources
 
 
 .PHONY: version-check attach-loopdev detach-loopdev make-filesystem mount umount check-swap
@@ -51,3 +59,13 @@ umount:
 check-swap:
 	-swapon -v $(LFS_DISK_MAPDEV)p4
 	-swapoff -v $(LFS_DISK_MAPDEV)p4
+
+prepare-download:
+	mkdir -pv $(LFS)/sources
+	chmod -v a+wt $(LFS)/sources
+
+download: wget-list md5sums
+	wget --input-file=wget-list --continue --directory-prefix=$(LFS)/sources
+	pushd $(LFS)/sources; \
+	md5sum -c md5sums; \
+	popd
