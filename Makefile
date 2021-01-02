@@ -69,3 +69,17 @@ download: wget-list md5sums
 	pushd $(LFS)/sources; \
 	md5sum -c md5sums; \
 	popd
+
+creating-limited-directory-layout:
+	mkdir -pv $(LFS)/{bin,etc,lib,sbin,usr,var,tools}
+	case $(shell uname -m) in \
+	    x86_64) mkdir -pv $(LFS)/lib64 ;; \
+	esac
+
+add-lfs-user:
+	groupadd lfs
+	useradd -s /bin/bash -g lfs -m -k /dev/null lfs
+	chown -v lfs $(LFS)/{usr,lib,var,etc,bin,sbin,tools,sources}
+	case $(shell uname -m) in \
+	    x86_64) chown -v lfs $(LFS)/lib64 ;; \
+	esac
